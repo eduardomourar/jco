@@ -1,10 +1,8 @@
-import { runAsWorker } from "./synckit/index.js";
-
 /**
  * @param {import("../../types/imports/wasi-http-types").Request} req
  * @returns {Promise<string>}
  */
-async function makeRequest(req) {
+export async function makeRequest(req) {
   try {
     let headers = new Headers(req.headers);
     const resp = await fetch(req.uri, {
@@ -26,5 +24,3 @@ async function makeRequest(req) {
     return JSON.stringify({ message: err.toString() });
   }
 }
-
-runAsWorker(makeRequest);

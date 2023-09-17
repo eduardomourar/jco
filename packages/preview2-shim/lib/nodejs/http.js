@@ -1,13 +1,17 @@
-import { fileURLToPath } from "node:url";
-import { UnexpectedError } from "../http/error.js";
-import { createSyncFn } from "../http/synckit/index.js";
+import { fileURLToPath } from 'node:url';
+import { Worker } from 'node:worker_threads';
+import * as Synclink from 'synclink';
+import nodeEndpoint from 'synclink/node-adapter';
+import { UnexpectedError } from '../http/error.js';
 
-const workerPath = fileURLToPath(new URL('../http/make-request.js', import.meta.url));
+const workerPath = fileURLToPath(new URL('./worker.mjs', import.meta.url));
 
 export function send(req) {
   console.log(`[http] Send (nodejs) ${req.uri}`);
-  const syncFn = createSyncFn(workerPath);
-  let rawResponse = syncFn(req);
+  const worker = new Worker(workerPath);
+  const wrap = Synclink.wrap(nodeEndpoint(worker));
+  let rawResponse = wrap.makeRequest(req).syncify();
+  worker.terminate();
   let response = JSON.parse(rawResponse);
   if (response.status) {
     return {

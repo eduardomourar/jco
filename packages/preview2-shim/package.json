@@ -30,6 +30,9 @@
   "devDependencies": {
     "mocha": "^10.2.0"
   },
+  "dependencies": {
+    "synclink": "file:///Users/admin/projects/public/synclink"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bytecodealliance/jco.git"
