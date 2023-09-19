@@ -1,22 +1,21 @@
 import { fileURLToPath } from 'node:url';
 import { Worker } from 'node:worker_threads';
+import { fromBase64 } from '@smithy/util-base64';
 import * as Synclink from 'synclink';
 import nodeEndpoint from 'synclink/node-adapter';
 import { UnexpectedError } from '../http/error.js';
 
-const workerPath = fileURLToPath(new URL('./worker.mjs', import.meta.url));
-
 export function send(req) {
   console.log(`[http] Send (nodejs) ${req.uri}`);
-  const worker = new Worker(workerPath);
-  const wrap = Synclink.wrap(nodeEndpoint(worker));
-  let rawResponse = wrap.makeRequest(req).syncify();
+  const worker = new Worker(fileURLToPath(new URL('./worker.mjs', import.meta.url)));
+  const proxy = Synclink.wrap(nodeEndpoint(worker));
+  let rawResponse = proxy.makeRequest(req).syncify();
   worker.terminate();
   let response = JSON.parse(rawResponse);
   if (response.status) {
     return {
       ...response,
-      body: response.body ? Buffer.from(response.body, "base64") : undefined,
+      body: response.body ? fromBase64(response.body) : undefined,
     };
   }
   throw new UnexpectedError(response.message);

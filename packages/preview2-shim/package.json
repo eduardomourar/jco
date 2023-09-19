@@ -31,7 +31,8 @@
     "mocha": "^10.2.0"
   },
   "dependencies": {
-    "synclink": "file:///Users/admin/projects/public/synclink"
+    "synclink": "^0.2.4",
+    "@smithy/util-base64": "^2.0.0"
   },
   "repository": {
     "type": "git",
