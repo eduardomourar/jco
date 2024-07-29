@@ -11,7 +11,7 @@ program
   .name('jco')
   .description(c`{bold jco - WebAssembly JS Component Tools}\n      JS Component Transpilation Bindgen & Wasm Tools for JS`)
   .usage('<command> [options]')
-  .version('1.3.1');
+  .version('1.4.0');
 
 function myParseInt(value) {
   return parseInt(value, 10);
@@ -23,7 +23,7 @@ program.command('componentize')
   .argument('<js-source>', 'JS source file to build')
   .requiredOption('-w, --wit <path>', 'WIT path to build with')
   .option('-n, --world-name <name>', 'WIT world to build')
-  .addOption(new Option('-d, --disable <feature...>', 'disable WASI features').choices(['stdio', 'random', 'clocks']))
+  .addOption(new Option('-d, --disable <feature...>', 'disable WASI features').choices(['stdio', 'random', 'clocks', 'http']))
   .option('--preview2-adapter <adapter>', 'provide a custom preview2 adapter path')
   .requiredOption('-o, --out <out>', 'output component file')
   .action(asyncAction(componentize));
