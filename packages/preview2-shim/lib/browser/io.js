@@ -23,7 +23,7 @@ const IoError = class Error {
  *
  * @typedef {{
  *   checkWrite?: () -> BigInt,
- *   write: (buf: Uint8Array) => BigInt,
+ *   write: (buf: Uint8Array) => void,
  *   blockingWriteAndFlush?: (buf: Uint8Array) => void,
  *   flush?: () => void,
  *   blockingFlush: () => void,
@@ -158,10 +158,11 @@ class OutputStream {
     this.blockingWriteAndFlush.call(this, new Uint8Array(Number(len)));
   }
   splice(src, len) {
-    const spliceLen = Math.min(len, this.checkWrite.call(this));
+    const checked = this.checkWrite.call(this);
+    const spliceLen = len < checked ? len : checked;
     const bytes = src.read(spliceLen);
     this.write.call(this, bytes);
-    return bytes.byteLength;
+    return BigInt(bytes.byteLength);
   }
   blockingSplice(_src, _len) {
     console.log(`[streams] Blocking splice ${this.id}`);

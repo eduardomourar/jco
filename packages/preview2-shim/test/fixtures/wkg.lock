@@ -3,10 +3,37 @@
 version = 1
 
 [[packages]]
+name = "wasi:clocks"
+registry = "wasi.dev"
+
+[[packages.versions]]
+requirement = "=0.2.11"
+version = "0.2.11"
+digest = "sha256:cdc4240256624e7097c6edab5ff5d615b9b49f30c834cf089598688216859ad8"
+
+[[packages]]
 name = "wasi:filesystem"
 registry = "wasi.dev"
 
 [[packages.versions]]
-requirement = "=0.2.8"
-version = "0.2.8"
-digest = "sha256:367255390ce1245d37dfca5d5680d3a87b655d13cd7cd2b9bc4572863883f9b5"
+requirement = "=0.2.11"
+version = "0.2.11"
+digest = "sha256:f4d7836eb4070385c4104ef5da1ca044d2d39339da2ec463e73685a76049ce74"
+
+[[packages]]
+name = "wasi:http"
+registry = "wasi.dev"
+
+[[packages.versions]]
+requirement = "=0.2.11"
+version = "0.2.11"
+digest = "sha256:e9accb3355280d1cd848bc7023206437db5e7012436e0e1608f88293313d361f"
+
+[[packages]]
+name = "wasi:io"
+registry = "wasi.dev"
+
+[[packages.versions]]
+requirement = "=0.2.11"
+version = "0.2.11"
+digest = "sha256:15ce2f7abfb523719361293475b6d9969c4d5fe382d109ae171229e562ae5c6d"

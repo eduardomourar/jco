@@ -60,6 +60,7 @@
     "@bytecodealliance/componentize-js": "0.21.0",
     "@bytecodealliance/jco": "1.15.2",
     "mime": "^4.0.7",
-    "puppeteer": "catalog:"
+    "puppeteer": "catalog:",
+    "vitest": "^3.2.4"
   }
 }

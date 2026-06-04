@@ -48,9 +48,9 @@ suite("browser", () => {
     // Build a component that makes an HTTP request using WASI HTTP
     const { component } = await componentize(
       `
-import { Fields } from "wasi:http/types@0.2.8";
-import { handle } from "wasi:http/outgoing-handler@0.2.8";
-import { OutgoingRequest, OutgoingBody, IncomingBody } from "wasi:http/types@0.2.8";
+import { Fields } from "wasi:http/types@0.2.11";
+import { handle } from "wasi:http/outgoing-handler@0.2.11";
+import { OutgoingRequest, OutgoingBody, IncomingBody } from "wasi:http/types@0.2.11";
 
 export const test = {
     run() {
@@ -147,9 +147,9 @@ export const test = {
 
     const { component } = await componentize(
       `
-import { Fields, RequestOptions } from "wasi:http/types@0.2.8";
-import { handle } from "wasi:http/outgoing-handler@0.2.8";
-import { OutgoingRequest, OutgoingBody, IncomingBody } from "wasi:http/types@0.2.8";
+import { Fields, RequestOptions } from "wasi:http/types@0.2.11";
+import { handle } from "wasi:http/outgoing-handler@0.2.11";
+import { OutgoingRequest, OutgoingBody, IncomingBody } from "wasi:http/types@0.2.11";
 
 export const test = {
     run() {
@@ -253,11 +253,11 @@ export const test = {
     // poll with subscribe-duration(0) in a loop until future.get() returns
     const { component } = await componentize(
       `
-import { Fields } from "wasi:http/types@0.2.8";
-import { handle } from "wasi:http/outgoing-handler@0.2.8";
-import { OutgoingRequest, OutgoingBody, IncomingBody } from "wasi:http/types@0.2.8";
-import { subscribeDuration } from "wasi:clocks/monotonic-clock@0.2.8";
-import { poll } from "wasi:io/poll@0.2.8";
+import { Fields } from "wasi:http/types@0.2.11";
+import { handle } from "wasi:http/outgoing-handler@0.2.11";
+import { OutgoingRequest, OutgoingBody, IncomingBody } from "wasi:http/types@0.2.11";
+import { subscribeDuration } from "wasi:clocks/monotonic-clock@0.2.11";
+import { poll } from "wasi:io/poll@0.2.11";
 
 export const test = {
     run() {
@@ -368,9 +368,9 @@ export const test = {
     // runtimes consume streams via JSPI
     const { component } = await componentize(
       `
-import { Fields } from "wasi:http/types@0.2.8";
-import { handle } from "wasi:http/outgoing-handler@0.2.8";
-import { OutgoingRequest, OutgoingBody, IncomingBody } from "wasi:http/types@0.2.8";
+import { Fields } from "wasi:http/types@0.2.11";
+import { handle } from "wasi:http/outgoing-handler@0.2.11";
+import { OutgoingRequest, OutgoingBody, IncomingBody } from "wasi:http/types@0.2.11";
 
 export const test = {
     run() {
@@ -469,7 +469,7 @@ export const test = {
 
     const { component } = await componentize(
       `
-import { now, subscribeDuration, subscribeInstant } from "wasi:clocks/monotonic-clock@0.2.8";
+import { now, subscribeDuration, subscribeInstant } from "wasi:clocks/monotonic-clock@0.2.11";
 
 export const test = {
     run() {
@@ -540,8 +540,8 @@ export const test = {
 
     const { component } = await componentize(
       `
-import { subscribeDuration } from "wasi:clocks/monotonic-clock@0.2.8";
-import { poll } from "wasi:io/poll@0.2.8";
+import { subscribeDuration } from "wasi:clocks/monotonic-clock@0.2.11";
+import { poll } from "wasi:io/poll@0.2.11";
 
 export const test = {
     run() {
@@ -620,7 +620,7 @@ export const test = {
 
     const { component } = await componentize(
       `
-import { subscribeDuration } from "wasi:clocks/monotonic-clock@0.2.8";
+import { subscribeDuration } from "wasi:clocks/monotonic-clock@0.2.11";
 
 export const test = {
     run() {
@@ -683,8 +683,8 @@ export const test = {
 
     const { component } = await componentize(
       `
-import { Fields, OutgoingRequest, OutgoingBody } from "wasi:http/types@0.2.8";
-import { handle } from "wasi:http/outgoing-handler@0.2.8";
+import { Fields, OutgoingRequest, OutgoingBody } from "wasi:http/types@0.2.11";
+import { handle } from "wasi:http/outgoing-handler@0.2.11";
 
 function doRequest(method, path, bodyData) {
     const enc = new TextEncoder();
@@ -838,8 +838,8 @@ export const test = {
 
     const { component } = await componentize(
       `
-import { Fields, OutgoingRequest, OutgoingBody } from "wasi:http/types@0.2.8";
-import { handle } from "wasi:http/outgoing-handler@0.2.8";
+import { Fields, OutgoingRequest, OutgoingBody } from "wasi:http/types@0.2.11";
+import { handle } from "wasi:http/outgoing-handler@0.2.11";
 
 function expectThrow(fn, expectedTag, label) {
     try {
@@ -1035,7 +1035,7 @@ export const test = {
     const successMsg = "SUCCESS: opened file";
     const { component } = await componentize(
       `
-import { getDirectories } from "wasi:filesystem/preopens@0.2.8";
+import { getDirectories } from "wasi:filesystem/preopens@0.2.11";
 
 export const test = {
     run() {

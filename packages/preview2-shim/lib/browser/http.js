@@ -367,6 +367,17 @@ class OutgoingRequest {
 const outgoingRequestHandle = OutgoingRequest._handle;
 delete OutgoingRequest._handle;
 
+function readBuffer(len, offset, buf) {
+  if (buf !== null && offset < buf.byteLength) {
+    const available = buf.byteLength - offset;
+    const toRead = Math.min(Number(len), available);
+    const newOffset = offset + toRead;
+    const slice = buf.slice(offset, newOffset);
+    return [slice, newOffset];
+  }
+  return [];
+}
+
 class IncomingBody {
   #finished = false;
   #stream = undefined;
@@ -397,6 +408,9 @@ class IncomingBody {
     let done = false;
     let reader = null;
     let readPromise = null;
+    let allChunks = [];
+    let totalBuffered = 0;
+    let isPreBuffering = false;
 
     function ensureReader() {
       if (!reader && fetchResponse.body) {
@@ -404,89 +418,110 @@ class IncomingBody {
       }
     }
 
-    function startRead() {
-      if (readPromise || done) {
-        return;
+    // Pre-buffer the entire response to avoid would-block issues
+    function preBufferResponse() {
+      if (isPreBuffering || done) {
+        return readPromise || Promise.resolve();
       }
+
+      isPreBuffering = true;
+
       ensureReader();
       if (!reader) {
         done = true;
-        return;
+        return Promise.resolve();
       }
-      readPromise = reader.read().then(
-        (result) => {
-          readPromise = null;
-          if (result.done) {
-            done = true;
-          } else {
-            buffer = result.value;
+
+      readPromise = (async () => {
+        try {
+          let chunkCount = 0;
+
+          while (!done) {
+            const result = await reader.read();
+            chunkCount++;
+
+            if (result.done) {
+              done = true;
+              break;
+            }
+
+            allChunks.push(result.value);
+            totalBuffered += result.value.length;
+          }
+
+          // Combine all chunks into a single buffer
+          if (allChunks.length > 0) {
+            const combined = new Uint8Array(totalBuffered);
+            let offset = 0;
+            for (const chunk of allChunks) {
+              combined.set(chunk, offset);
+              offset += chunk.length;
+            }
+            buffer = combined;
+            bufferOffset = 0;
+            allChunks = []; // Clear chunks after combining
+          } else if (done) {
+            // Empty response body
+            buffer = new Uint8Array(0);
             bufferOffset = 0;
           }
-        },
-        () => {
-          readPromise = null;
+        } catch (error) {
           done = true;
-        },
-      );
+          buffer = new Uint8Array(0);
+          bufferOffset = 0;
+        } finally {
+          isPreBuffering = false;
+          readPromise = null;
+        }
+      })();
+
+      return readPromise;
     }
 
     incomingBody.#stream = new InputStream({
       read(len) {
-        if (done && (buffer === null || bufferOffset >= buffer.byteLength)) {
-          throw { tag: "closed" };
-        }
-        if (buffer !== null && bufferOffset < buffer.byteLength) {
-          const available = buffer.byteLength - bufferOffset;
-          const toRead = Math.min(Number(len), available);
-          const slice = buffer.slice(bufferOffset, bufferOffset + toRead);
-          bufferOffset += toRead;
-          if (bufferOffset >= buffer.byteLength) {
-            buffer = null;
-            bufferOffset = 0;
-            if (!done) {
-              startRead();
-            }
-          }
+        // If we have buffered data, return it immediately
+        const [slice, offset] = readBuffer(len, bufferOffset, buffer);
+        if (slice) {
+          bufferOffset = offset;
           return slice;
         }
-        throw { tag: "would-block" };
+
+        // If stream is completely done and no more data, return closed
+        if (done && !isPreBuffering) {
+          throw { tag: "closed" };
+        }
+
+        // Data not ready yet - ensure pre-buffering is in progress
+        preBufferResponse();
+
+        // This allows the WASM code to continue without polling
+        if (isPreBuffering) {
+          return new Uint8Array(0);
+        }
+
+        // Edge case: buffering complete but no data yet processed
+        // This can happen if preBufferResponse just finished
+        {
+          const [slice, offset] = readBuffer(len, bufferOffset, buffer);
+          if (slice) {
+            bufferOffset = offset;
+            return slice;
+          }
+        }
+
+        throw { tag: "closed" };
       },
       blockingRead(len) {
-        if (done && (buffer === null || bufferOffset >= buffer.byteLength)) {
-          throw { tag: "closed" };
-        }
-        if (buffer !== null && bufferOffset < buffer.byteLength) {
-          const available = buffer.byteLength - bufferOffset;
-          const toRead = Math.min(Number(len), available);
-          const slice = buffer.slice(bufferOffset, bufferOffset + toRead);
-          bufferOffset += toRead;
-          if (bufferOffset >= buffer.byteLength) {
-            buffer = null;
-            bufferOffset = 0;
-            if (!done) {
-              startRead();
-            }
-          }
-          return slice;
-        }
-        startRead();
-        const waitFor = readPromise || Promise.resolve();
-        return waitFor.then(() => {
+        // Use pre-buffering for blocking reads to ensure all data is available
+        const bufferPromise = preBufferResponse();
+        return bufferPromise.then(() => {
           if (done && (buffer === null || bufferOffset >= buffer.byteLength)) {
             throw { tag: "closed" };
           }
-          if (buffer !== null && bufferOffset < buffer.byteLength) {
-            const available = buffer.byteLength - bufferOffset;
-            const toRead = Math.min(Number(len), available);
-            const slice = buffer.slice(bufferOffset, bufferOffset + toRead);
-            bufferOffset += toRead;
-            if (bufferOffset >= buffer.byteLength) {
-              buffer = null;
-              bufferOffset = 0;
-              if (!done) {
-                startRead();
-              }
-            }
+          const [slice, offset] = readBuffer(len, bufferOffset, buffer);
+          if (slice) {
+            bufferOffset = offset;
             return slice;
           }
           throw { tag: "closed" };
@@ -496,7 +531,8 @@ class IncomingBody {
         if (done || (buffer !== null && bufferOffset < buffer.byteLength)) {
           return new Pollable();
         }
-        startRead();
+        // Use pre-buffering to ensure data will be available
+        preBufferResponse();
         if (readPromise) {
           return new Pollable(readPromise);
         }
@@ -504,7 +540,8 @@ class IncomingBody {
       },
     });
 
-    startRead();
+    // Start pre-buffering the response immediately
+    preBufferResponse();
     return incomingBody;
   }
 }
