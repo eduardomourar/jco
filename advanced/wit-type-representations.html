@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-016a40fa.js";
+            window.path_to_searchindex_js = "../searchindex-0a190b25.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-9521a751.js"></script>
@@ -210,6 +210,36 @@ and <a href="https://www.typescriptlang.org/">Typescript</a> (if dealing with <c
 </tbody>
 </table>
 </div>
+<h2 id="enums-enum"><a class="header" href="#enums-enum">Enums (<code>enum</code>)</a></h2>
+<p>Jco represents a WIT enum as a union of string literals. By default, the strings preserve the WIT case names:</p>
+<pre><code class="language-wit">enum status { request-pending, request-complete }
+</code></pre>
+<pre><code class="language-ts">export type Status = 'request-pending' | 'request-complete';
+</code></pre>
+<p>Pass <code>--enum-values-screaming-snake-case</code> to use <code>SCREAMING_SNAKE_CASE</code> values at the JavaScript boundary and in generated
+declarations:</p>
+<pre><code class="language-ts">export type Status = 'REQUEST_PENDING' | 'REQUEST_COMPLETE';
+</code></pre>
+<p>The option affects both values passed into a component and values returned from it. It also works with
+<code>--use-namespace-objects</code>; in that mode, for example, <code>Status.RequestPending</code> has the value <code>'REQUEST_PENDING'</code>.</p>
+<h2 id="namespace-objects"><a class="header" href="#namespace-objects">Namespace objects</a></h2>
+<p>WIT enums and variants are represented as TypeScript types by default, so they do not provide JavaScript values for
+constructing cases. Pass <code>--use-namespace-objects</code> to <code>jco transpile</code> to generate namespace objects for enums, flags,
+and variants. The same option on <code>jco types</code> and <code>jco guest-types</code> generates matching declarations.</p>
+<p>For example, given these WIT types:</p>
+<pre><code class="language-wit">enum direction { north, south }
+flags permissions { read, write }
+variant request { open(string), close }
+</code></pre>
+<p>an exported interface provides values like:</p>
+<pre><code class="language-js">api.Direction.North; // 'north'
+api.Permissions.Read | api.Permissions.Write; // 3n
+api.Request.Open('/tmp/file'); // { tag: 'open', val: '/tmp/file' }
+api.Request.Close(); // { tag: 'close' }
+</code></pre>
+<p>The namespace objects are frozen. Aliases of the same WIT type share the same object. Since flag namespace values are
+bit masks, this option implies <code>--flags-as-bigint</code>. It cannot be combined with <code>--variants-inline-cases</code>, and remains
+disabled by default to preserve existing generated APIs.</p>
 <h2 id="variants-variant"><a class="header" href="#variants-variant">Variants (<code>variant</code>)</a></h2>
 <blockquote class="blockquote-tag blockquote-tag-note">
 <p class="blockquote-tag-title"><svg viewbox="0 0 16 16" width="18" height="18"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg>Note</p>
