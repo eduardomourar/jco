@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-be1895ff.js";
+            window.path_to_searchindex_js = "../searchindex-6b07382a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b969895d.js"></script>
@@ -271,6 +271,7 @@ available only under a versioned entry point.</p>
 <tbody>
 <tr><td><code>node:assert</code>, <code>node:assert/strict</code></td><td><code>@bytecodealliance/jco-std/wasi/0.2.x/node/24.x.x/assert</code></td><td>Adapted from the MIT-licensed Node.js 24 implementation. Requires no WIT capability.</td></tr>
 <tr><td><code>node:path</code>, <code>node:path/posix</code>, <code>node:path/win32</code></td><td><code>@bytecodealliance/jco-std/wasi/0.2.x/node/24.x.x/path</code></td><td>Jco’s portable path implementation, connected to <code>wasi:cli/environment</code> for the guest working directory and environment.</td></tr>
+<tr><td><code>node:string_decoder</code></td><td><code>@bytecodealliance/jco-std/wasi/0.2.x/node/24.x.x/string-decoder</code></td><td>Guest-local streaming decoder for Node 24. Requires no WIT capability.</td></tr>
 <tr><td><code>node:domain</code></td><td><em>(refused)</em></td><td>Deprecated upstream in its entirety. Resolves so the failure explains itself; every use throws <code>ERR_JCO_UNSUPPORTED_DEPRECATED_NODE_API</code>.</td></tr>
 <tr><td><code>node:ffi</code></td><td><code>@bytecodealliance/jco-std/wasi/0.2.x/node/26.x.x/ffi</code></td><td><strong>Node 26 only.</strong> Native calls and host memory over an explicit host capability; denied by default. Callbacks and guest-buffer addresses are refused – see below.</td></tr>
 <tr><td><code>node:async_hooks</code></td><td><code>@bytecodealliance/jco-std/wasi/0.2.x/node/24.x.x/async-hooks</code></td><td>Synchronous scopes only. Requires no WIT capability. Asynchronous use is refused rather than silently losing the store – see below.</td></tr>
@@ -280,6 +281,7 @@ available only under a versioned entry point.</p>
 <tr><td><code>node:console</code></td><td><code>@bytecodealliance/jco-std/wasi/0.2.x/node/24.x.x/console</code></td><td>Guest console over an explicit application-provided host capability; denied by default, so every call throws until the application maps a provider.</td></tr>
 <tr><td><code>node:dns</code>, <code>node:dns/promises</code></td><td><code>@bytecodealliance/jco-std/wasi/0.2.x/node/24.x.x/dns</code></td><td>Name resolution over an explicit host capability; denied by default.</td></tr>
 <tr><td><code>node:fs</code>, <code>node:fs/promises</code></td><td><code>@bytecodealliance/jco-std/wasi/0.2.x/node/24.x.x/fs</code></td><td>Synchronous, callback, and promise facades over an explicit filesystem capability; denied by default.</td></tr>
+<tr><td><code>node:inspector</code>, <code>node:inspector/promises</code></td><td><code>@bytecodealliance/jco-std/wasi/0.2.x/node/24.x.x/inspector</code></td><td>Session, console, and broadcast surface over an explicit host capability; denied by default. The host calls back through a guest-exported interface – see below.</td></tr>
 <tr><td><code>node:buffer</code></td><td>unenv’s portable Buffer core with a Jco public adapter</td><td>Covers the commonly used modern Buffer operations. Jco controls deprecated and runtime-dependent exports.</td></tr>
 <tr><td><code>node:events</code></td><td>unenv’s EventEmitter with a Jco layer from <code>@bytecodealliance/jco-std/wasi/0.2.x/node/24.x.x/events</code></td><td>Covers the complete Node 24 module surface, including the <code>on()</code> async iterator and <code>EventEmitterAsyncResource</code>. Requires no WIT capability.</td></tr>
 <tr><td><code>node:querystring</code></td><td>unenv’s Node-derived querystring implementation</td><td>Covers the complete Node 24 module surface and shares the audited Buffer core used by <code>node:buffer</code>.</td></tr>
@@ -352,6 +354,27 @@ world must import exactly one compatible version when it uses <code>node:path</c
 <p>Jco selects the adapter matching the version in the world. A component that only
 uses capability-free built-ins such as assert, Buffer, or querystring does not
 need this import.</p>
+<h3 id="string-decoder"><a class="header" href="#string-decoder">String decoder</a></h3>
+<p>Bundled source can use the documented Node 24 streaming decoder directly:</p>
+<pre><code class="language-js">import { Buffer } from "node:buffer";
+import { StringDecoder } from "node:string_decoder";
+
+const decoder = new StringDecoder("utf8");
+
+export function decode() {
+  return decoder.write(Buffer.from([0xf0, 0x9f])) +
+    decoder.end(Buffer.from([0x8c, 0x8d]));
+}
+</code></pre>
+<p>Jco maps the import to a guest-local implementation based on Node 24.20.0. It
+retains incomplete UTF-8, UTF-16LE, base64, and base64url groups between calls,
+supports Node’s encoding aliases, and accepts strings or any <code>ArrayBufferView</code>.
+It reuses the audited Buffer core already used by <code>node:buffer</code>; it does not add a
+WIT import, callback export, host adapter, or JSPI operation.</p>
+<p>Because the adapter is selected only when bundled code resolves
+<code>node:string_decoder</code>, source graphs that do not import it pay no decoder code or
+initialization cost. The legacy bare <code>string_decoder</code> specifier is deliberately
+not intercepted.</p>
 <h3 id="child-processes-and-host-capabilities"><a class="header" href="#child-processes-and-host-capabilities">Child processes and host capabilities</a></h3>
 <p>A WebAssembly guest cannot spawn a process itself. When bundled source imports
 <code>node:child_process</code>, Jco ensures that the selected world declares the dedicated
@@ -566,6 +589,54 @@ setSuffix("dylib");   // before instantiating the component
 </code></pre>
 <p>Note that you may not need to change the suffix if the runtime already has it set properly, as
 <code>suffix</code> defaults to the runtime’s own <code>ffi.suffix</code>.</p>
+<h3 id="inspector"><a class="header" href="#inspector">Inspector</a></h3>
+<p><code>node:inspector</code> (and <code>node:inspector/promises</code>) exposes the V8 inspector: a <code>Session</code> speaking the
+Chrome DevTools Protocol, the inspector <code>console</code>, and the experimental <code>Network</code>/<code>DOMStorage</code>
+broadcast namespaces. The inspector is host machinery – a WebSocket server and a protocol
+dispatcher wired into the running isolate – so WASI cannot express it. Like <code>node:child_process</code>,
+it is host-backed and <strong>denied by default</strong>.</p>
+<p>Map it to the Node passthrough to grant it:</p>
+<pre><code class="language-console">jco transpile component.wasm \
+  --map 'jco:node/inspector@0.1.0=@bytecodealliance/jco-std/wasi/0.2.x/node/24.x.x/inspector/host/node'
+</code></pre>
+<p>The guest code is ordinary Node:</p>
+<pre><code class="language-js">import { Session } from "node:inspector/promises";
+
+const session = new Session();
+session.connect();
+const { result } = await session.post("Runtime.evaluate", { expression: "6 * 7" });
+result.value;   // 42, evaluated in the host isolate
+</code></pre>
+<p>Argument validation, session state, the <code>EventEmitter</code> surface, and error reconstruction all run
+guest-side, so <code>ERR_INSPECTOR_NOT_CONNECTED</code>, <code>ERR_INSPECTOR_ALREADY_CONNECTED</code>,
+<code>ERR_INVALID_ARG_TYPE</code>, and the protocol’s <code>ERR_INSPECTOR_COMMAND</code> all match Node exactly. CDP
+payloads cross the boundary as JSON; the inspector <code>console</code> forwards its arguments as JSON too,
+which is best-effort for functions, symbols, and cycles.</p>
+<h4 id="the-host-calls-back-into-the-component"><a class="header" href="#the-host-calls-back-into-the-component">The host calls back into the component</a></h4>
+<p>The inspector’s two callbacks – a <code>post</code> response and a session notification – run the other way,
+from host to guest. A component cannot implement a resource declared on an <em>imported</em> interface (its
+methods would run host-side), so the callbacks are a guest-<strong>exported</strong> interface,
+<code>jco:node/inspector-callbacks@0.1.0</code>, holding one resource per callback kind: a one-shot
+<code>post-callback</code> and a long-lived <code>notification-listener</code>. When bundled source imports
+<code>node:inspector</code>, Jco adds both the <code>import jco:node/inspector@0.1.0;</code> and the matching
+<code>export jco:node/inspector-callbacks@0.1.0;</code> to the selected world, and bundles the JS export
+alongside the entry – neither is written by hand.</p>
+<p>The embedder wires the exported interface to the host adapter after instantiation:</p>
+<pre><code class="language-js">import * as inspectorHost from "@bytecodealliance/jco-std/wasi/0.2.x/node/24.x.x/inspector/host/node";
+import * as component from "./transpiled/component.js";
+
+inspectorHost.attachCallbacks(component.inspectorCallbacks);
+</code></pre>
+<p>Two timing rules follow from the component model, which forbids calling into a component while a
+task is already active in it:</p>
+<ul>
+<li><strong>In-isolate <code>post</code> responses are synchronous.</strong> <code>Runtime.evaluate</code>, <code>Debugger.*</code>, and the other
+in-isolate methods resolve during the post call, so the host returns the response directly and an
+awaited <code>Session.post</code> never needs a re-entrant callback. This is the same behavior as Node, which
+also fires those callbacks synchronously.</li>
+<li><strong>Notifications arrive between guest tasks</strong>, like <code>node:cluster</code>’s events: the host queues each
+notification and delivers it once no exported call is in flight, never into a suspended <code>await</code>.</li>
+</ul>
 <h3 id="diagnostics-channels"><a class="header" href="#diagnostics-channels">Diagnostics channels</a></h3>
 <p>Publish/subscribe for instrumentation, entirely in-process, so it needs no WIT capability. Channels
 are interned by name: a publisher and a subscriber that never share a reference still meet on the
@@ -711,7 +782,7 @@ set of coordinated shims:</p>
 <code>node:http2</code>, <code>node:https</code>, <code>node:inspector</code>, <code>node:inspector/promises</code>,
 <code>node:module</code>, <code>node:net</code>, <code>node:os</code>, <code>node:perf_hooks</code>, <code>node:process</code>,
 <code>node:repl</code>, <code>node:sqlite</code>, <code>node:stream</code>, <code>node:stream/consumers</code>,
-<code>node:stream/promises</code>, <code>node:stream/web</code>, <code>node:string_decoder</code>, <code>node:timers</code>,
+<code>node:stream/promises</code>, <code>node:stream/web</code>, <code>node:timers</code>,
 <code>node:tls</code>, <code>node:util</code>, <code>node:util/types</code>, <code>node:v8</code>, <code>node:vm</code>, <code>node:wasi</code>,
 <code>node:worker_threads</code>, and <code>node:zlib</code>.</p>
 <h4 id="future-composition"><a class="header" href="#future-composition">Future composition</a></h4>
