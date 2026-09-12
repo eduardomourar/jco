@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9a3c7268.js";
+            window.path_to_searchindex_js = "../searchindex-420c61d4.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-05bc3f8a.js"></script>
+        <script src="../toc-5aa2e47d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -268,6 +268,8 @@ used by the Hono adapter; assert and Buffer do not add further capabilities.</p>
 <ul>
 <li><code>node:assert</code> and <code>node:assert/strict</code>, adapted from Node.js 24 for portable
 execution without a host capability; and</li>
+<li><code>node:util</code> and <code>node:util/types</code>, sharing assertion equality, console formatting,
+scheduling and validation helpers, with portable parsing and MIME utilities; and</li>
 <li><code>node:path</code>, <code>node:path/posix</code>, and <code>node:path/win32</code>, implemented with portable
 path algorithms and a <code>wasi:cli/environment</code> provider for operations that need
 the guest working directory; and</li>
